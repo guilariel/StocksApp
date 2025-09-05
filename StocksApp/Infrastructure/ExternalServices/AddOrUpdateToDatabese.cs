@@ -39,7 +39,9 @@ namespace StocksApp.Infrastructure.ExternalServices
             companyComand.Parameters.AddWithValue("companyId", companyId);
 
             companyComand.ExecuteNonQuery();
-        }
+        }//datos pasar a entity framework
+        //tratar de hcacaer andar rabitmq en la pc
+        //tratar de leer mensajes
         public void InsertPrice(int stockId, double price, DateTime date)
         {
             using var connection = new NpgsqlConnection(_connectionString);
