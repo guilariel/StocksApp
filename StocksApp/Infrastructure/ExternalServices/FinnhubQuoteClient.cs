@@ -1,7 +1,8 @@
-﻿using StocksApp.Application.Dtos;
+﻿using StocksApp.Application.Dtos.RepositoryDtos;
 using StocksApp.Domain.ValueObjects;
-using StocksApp.Infrastructure.Utilities;
+using System.Net.Http.Json;
 using System.Text.Json;
+
 namespace StocksApp.Infrastructure.ExternalServices
 {
     public class FinnhubQuoteClient
@@ -19,25 +20,25 @@ namespace StocksApp.Infrastructure.ExternalServices
         public async Task<Quote> GetQuoteAsync(string symbol)
         {
             if (string.IsNullOrEmpty(symbol))
-                throw new ArgumentException("Key is required.");
+                throw new ArgumentException("Symbol is required.");
+
             try
             {
-                var apiWrapper = new ApiWrapper(maxRetries: 5, delayMs: 1000, limitOfrequestPerSecond: 3);
+                // Construimos la URL usando la API Key cargada desde la configuración
+                var url = $"https://finnhub.io/api/v1/quote?symbol={symbol}&token=d0ovj61r01qr8ds0ibp0d0ovj61r01qr8ds0ibpg";
 
-                var dto = await apiWrapper.ExecuteAsync(async () =>
-                {
-                    var response = await _httpClient.GetAsync(
-                        $"https://finnhub.io/api/v1/quote?symbol={symbol}&token={_apiKey}");
+                // Hacemos la llamada HTTP directa
+                var response = await _httpClient.GetAsync(url);
+                response.EnsureSuccessStatusCode();
 
-                    response.EnsureSuccessStatusCode();
-
-                    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                    return await response.Content.ReadFromJsonAsync<StockQuoteDto>(options);
-                });
+                // Leemos el JSON directamente en nuestro DTO
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var dto = await response.Content.ReadFromJsonAsync<StockQuoteDto>(options);
 
                 if (dto is null)
                     throw new InvalidOperationException("Failed to deserialize the quote response.");
 
+                // Convertimos el DTO a nuestra entidad de dominio
                 return new Quote(dto.C, dto.H, dto.L, dto.O, dto.Pc, dto.T);
             }
             catch (HttpRequestException ex)
@@ -46,10 +47,8 @@ namespace StocksApp.Infrastructure.ExternalServices
             }
             catch (JsonException ex)
             {
-                throw new ArgumentException($"Error in Json", ex);
+                throw new ArgumentException("Error parsing JSON response", ex);
             }
-
         }
     }
 }
-

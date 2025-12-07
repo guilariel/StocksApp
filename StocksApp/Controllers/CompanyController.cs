@@ -1,7 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using StocksApp.Application.Dtos;
-using StocksApp.Application.UseCases;
-using StocksApp.Domain.Entities;
+using RabbitMQAndGenericRepository.RabbitMq;
+using StocksApp.Application.Dtos.RepositoryDtos;
+using StocksApp.Application.UseCases.RepositoryUseCases;
+using StocksApp.Domain.Entities.RepositoryEntites;
 
 namespace StocksApp.Controllers
 {

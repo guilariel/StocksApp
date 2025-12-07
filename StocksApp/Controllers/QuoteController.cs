@@ -1,6 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using StocksApp.Application.Dtos;
-using StocksApp.Application.UseCases;
+using StocksApp.Application.Dtos.RepositoryDtos;
+using StocksApp.Application.UseCases.RepositoryUseCases;
 using StocksApp.Domain.ValueObjects;
 
 namespace StocksApp.Controllers
