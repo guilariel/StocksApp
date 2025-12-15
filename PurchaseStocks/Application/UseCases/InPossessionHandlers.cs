@@ -1,86 +1,24 @@
 ﻿using MediatR;
-using PurchaseStocks.Infrastructure;
 using RabbitMQAndGenericRepository.RabbitMq;
-using SellStocks.Application.Dtos;
-using SellStocks.Domain.Entities;
-using StocksApp.Application.Dtos;
+using RabbitMQAndGenericRepository.Repositorio.DbEntities;
+using PurchaseDll;
 
 namespace PurchaseStocks.Application.Handlers
 {
-    // --- GET ALL ---
-    public record GetAllInPossessionsQuery() : IRequest<List<InPossessionDbDto>>;
-
-    public class GetAllInPossessionsHandler : IRequestHandler<GetAllInPossessionsQuery, List<InPossessionDbDto>>
-    {
-        private readonly CrudPossession _service;
-        private readonly CrudUsers _crudUsers;
-        private readonly CrudStocks _crudStocks;
-        public GetAllInPossessionsHandler(CrudPossession service, CrudUsers crudUsers, CrudStocks crudStocks)
-        {
-            _service = service;
-            _crudUsers = crudUsers;
-            _crudStocks = crudStocks;
-        }
-
-        public async Task<List<InPossessionDbDto>> Handle(GetAllInPossessionsQuery request, CancellationToken cancellationToken)
-        {
-            List<InPossessionDb> possessions = await _service.GetAllAsync();
-            List<InPossessionDbDto> result = new List<InPossessionDbDto>();
-            foreach (InPossessionDb pos in possessions)
-            {
-                UsersDb user =  await _crudUsers.GetByIdAsync(pos.owner_id);
-                StockDb stock = await _crudStocks.GetByIdAsync(pos.stock_id);
-                UsersDbDto userDto = new UsersDbDto(user.name, user.funds);
-                StockDbDto stockDto = new StockDbDto(stock.symbol, stock.name, stock.description, null);
-                InPossessionDbDto possessionDbDto = new InPossessionDbDto(userDto,stockDto,pos.amount);
-                result.Add(possessionDbDto);
-            }
-            return await Task.FromResult(result);
-        }
-    }
-
-    // --- GET ONE ---
-    public record GetInPossessionQuery(int OwnerId, int SymbolId) : IRequest<InPossessionDbDto?>;
-
-    public class GetInPossessionHandler : IRequestHandler<GetInPossessionQuery, InPossessionDbDto?>
-    {
-        private readonly CrudPossession _service;
-        private readonly CrudUsers _crudUsers;
-        private readonly CrudStocks _crudStocks;
-
-        public GetInPossessionHandler(CrudPossession service, CrudUsers crudUsers, CrudStocks crudStocks)
-        {
-            _service = service;
-            _crudUsers = crudUsers;
-            _crudStocks = crudStocks;
-        }
-
-        public async Task<InPossessionDbDto?> Handle(GetInPossessionQuery request, CancellationToken cancellationToken)
-        {
-            InPossessionDb possessionDb = await _service.GetOneAsync(request.OwnerId, request.SymbolId);
-            UsersDb user = await _crudUsers.GetByIdAsync(possessionDb.owner_id);
-            StockDb stock = await _crudStocks.GetByIdAsync(possessionDb.stock_id);
-            UsersDbDto userDto = new UsersDbDto(user.name, user.funds);
-            StockDbDto stockDto = new StockDbDto(stock.symbol, stock.name, stock.description, null);
-            InPossessionDbDto possessionDbDto = new InPossessionDbDto(userDto, stockDto, possessionDb.amount);
-            return await Task.FromResult(possessionDbDto);
-        }
-    }
-
     public record AddPossessionCommand(string owner_name, string stock_name, int amount) : IRequest;
     public class AddPossessionHandler : IRequestHandler<AddPossessionCommand>
     {
-        private readonly CrudPossession _service;
-        private readonly CrudUsers _crudUsers;
-        private readonly CrudStocks _crudStocks;
-        private readonly RabbitMessageService _rabbitMessageService;
-        public AddPossessionHandler(CrudPossession service, CrudUsers crudUsers, CrudStocks crudStocks, RabbitMessageService rabbitMessageService)
+        private readonly UserRepository _crudUsers;
+        private readonly StockRepository _crudStocks;
+        private readonly RabbitMessageService _messageService;
+
+        public AddPossessionHandler(UserRepository UserRepository, StockRepository StockRepository, RabbitMessageService messageService)
         {
-            _service = service;
-            _crudUsers = crudUsers;
-            _crudStocks = crudStocks;
-            _rabbitMessageService = rabbitMessageService;
+            _crudUsers = UserRepository;
+            _crudStocks = StockRepository;
+            _messageService = messageService;
         }
+
         public async Task Handle(AddPossessionCommand request, CancellationToken cancellationToken)
         {
             UsersDb? user = await _crudUsers.GetOneByNameAsync(request.owner_name);
@@ -91,38 +29,11 @@ namespace PurchaseStocks.Application.Handlers
             }
             InPossessionDb possession = new InPossessionDb
             {
-                owner_id = user.id,
+                id = user.id,
                 stock_id = stock.id,
                 amount = request.amount
             };
-            await _rabbitMessageService.SendMessage<InPossessionDb>(possession, "add");
-        }
-    }
-    public record GetPossessionByNameQuery(string OwnerName) : IRequest<List<InPossessionDbDto>>;
-    public class GetPossessionByNameHandler : IRequestHandler<GetPossessionByNameQuery, List<InPossessionDbDto>>
-    {
-        private readonly CrudPossession _service;
-        private readonly CrudUsers _crudUsers;
-        private readonly CrudStocks _crudStocks;
-        public GetPossessionByNameHandler(CrudPossession service, CrudUsers crudUsers, CrudStocks crudStocks)
-        {
-            _service = service;
-            _crudUsers = crudUsers;
-        }
-        public async Task<List<InPossessionDbDto>> Handle(GetPossessionByNameQuery request, CancellationToken cancellationToken)
-        {
-            List<InPossessionDb> possessions = await _service.GetPossessionsByOwner(request.OwnerName,_crudUsers);
-            List<InPossessionDbDto> result = new List<InPossessionDbDto>();
-            foreach (InPossessionDb pos in possessions)
-            {
-                UsersDb user = await _crudUsers.GetByIdAsync(pos.owner_id);
-                StockDb stock = await _crudStocks.GetByIdAsync(pos.stock_id);
-                UsersDbDto userDto = new UsersDbDto(user.name, user.funds);
-                StockDbDto stockDto = new StockDbDto(stock.symbol, stock.name, stock.description, null);
-                InPossessionDbDto possessionDbDto = new InPossessionDbDto(userDto, stockDto, pos.amount);
-                result.Add(possessionDbDto);
-            }
-            return await Task.FromResult(result);
+            await _messageService.SendMessage<InPossessionDb>(possession, "add");
         }
     }
 }

@@ -1,9 +1,9 @@
 ﻿using MediatR;
-using LogIn.Infrastructure;
 using SellStocks.Application.Dtos;
-using LogIn.Domain.Entities;
+using RabbitMQAndGenericRepository.Repositorio.DbEntities;
 using RabbitMQAndGenericRepository.RabbitMq;
 using LogIn.Domain.Hashing;
+using LogInLibrary;
 
 namespace LogIn.Application.UseCases
 {
@@ -12,16 +12,16 @@ namespace LogIn.Application.UseCases
 
     public class GetAllUsersHandler : IRequestHandler<GetAllUsersQuery, List<UsersDbDto>>
     {
-        private readonly CrudUsers _userService;
+        private readonly UserRepository _userRepository;
 
-        public GetAllUsersHandler(CrudUsers CrudUsers)
+        public GetAllUsersHandler(UserRepository userRepository)
         {
-            _userService = CrudUsers;
+            _userRepository = userRepository;
         }
 
         public async Task<List<UsersDbDto>> Handle(GetAllUsersQuery request, CancellationToken cancellationToken)
         {
-            List<UsersDb> users = await _userService.GetAllAsync();
+            IEnumerable<UsersDb> users = await _userRepository.GetAllAsync();
             List<UsersDbDto> result = new List<UsersDbDto>();
             foreach (UsersDb us in users)
             {
@@ -37,16 +37,16 @@ namespace LogIn.Application.UseCases
 
     public class GetUserByIdHandler : IRequestHandler<GetUserByIdQuery, UsersDbDto?>
     {
-        private readonly CrudUsers _userService;
+        private readonly UserRepository _userRepository;
 
-        public GetUserByIdHandler(CrudUsers CrudUsers)
+        public GetUserByIdHandler(UserRepository userRepository)
         {
-            _userService = CrudUsers;
+            _userRepository = userRepository;
         }
 
         public async Task<UsersDbDto?> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
         {
-            UsersDb user = await _userService.GetByIdAsync(request.Id);
+            UsersDb user = await _userRepository.GetByIdAsync(request.Id);
             UsersDbDto result = new UsersDbDto(user.name,user.funds);
             return await Task.FromResult(result);
         }
@@ -54,14 +54,15 @@ namespace LogIn.Application.UseCases
     public record GetUserByNameQuery(string name) : IRequest<UsersDbDto?>;
     public class GetUserByNameHandler : IRequestHandler<GetUserByNameQuery, UsersDbDto?>
     {
-        private readonly CrudUsers _userService;
-        public GetUserByNameHandler(CrudUsers CrudUsers)
+        private readonly UserRepository _userRepository;
+
+        public GetUserByNameHandler(UserRepository userRepository)
         {
-            _userService = CrudUsers;
+            _userRepository = userRepository;
         }
         public async Task<UsersDbDto?> Handle(GetUserByNameQuery request, CancellationToken cancellationToken)
         {
-            UsersDb user = await _userService.GetOneByNameAsync(request.name);
+            UsersDb user = await _userRepository.GetOneByNameAsync(request.name);
             UsersDbDto result = new UsersDbDto(user.name, user.funds);
             return await Task.FromResult(result);
         }
@@ -69,11 +70,9 @@ namespace LogIn.Application.UseCases
     public record AddUserQuery(string name, string password) : IRequest;
     public class AddUserHandler : IRequestHandler<AddUserQuery>
     {
-        private readonly CrudUsers _userService;
         private readonly RabbitMessageService _rabbitMessageService; 
-        public AddUserHandler(CrudUsers CrudUsers, RabbitMessageService rabbitMessageService)
+        public AddUserHandler(RabbitMessageService rabbitMessageService)
         {
-            _userService = CrudUsers;
             _rabbitMessageService = rabbitMessageService;
         }
         public async Task Handle(AddUserQuery request, CancellationToken cancellationToken)
@@ -88,18 +87,18 @@ namespace LogIn.Application.UseCases
 
     public class UserLogInHandler : IRequestHandler<UserLogInQuery, string?>
     {
-        private readonly CrudUsers _userService;
+        private readonly UserRepository _userRepository;
         private readonly JwtService _tokenService;
 
-        public UserLogInHandler(CrudUsers CrudUsers, JwtService tokenService)
+        public UserLogInHandler(UserRepository userRepository, JwtService tokenService)
         {
-            _userService = CrudUsers;
+            _userRepository = userRepository;
             _tokenService = tokenService;
         }
 
         public async Task<string?> Handle(UserLogInQuery request, CancellationToken cancellationToken)
         {
-            UsersDb? user = await _userService.GetOneByNameAsync(request.name);
+            UsersDb? user = await _userRepository.GetOneByNameAsync(request.name);
             if (user == null)
                 return null;
 
@@ -116,11 +115,9 @@ namespace LogIn.Application.UseCases
     public record AddFundsQuery(string name, double amount) : IRequest;
     public class AddFundsHandler : IRequestHandler<AddFundsQuery>
     {
-        private readonly CrudUsers _userService;
         private readonly RabbitMessageService _rabbitMessageService;
-        public AddFundsHandler(CrudUsers CrudUsers, RabbitMessageService rabbitMessageService)
+        public AddFundsHandler(RabbitMessageService rabbitMessageService)
         {
-            _userService = CrudUsers;
             _rabbitMessageService = rabbitMessageService;
         }
         public async Task Handle(AddFundsQuery request, CancellationToken cancellationToken)
@@ -137,12 +134,10 @@ namespace LogIn.Application.UseCases
     public record SellFundsQuery(string name, double amount) : IRequest;
     public class SellFundsHandler : IRequestHandler<AddFundsQuery>
     {
-        private readonly CrudUsers _userService;
         private readonly RabbitMessageService _rabbitMessageService;
 
-        public SellFundsHandler(CrudUsers CrudUsers, RabbitMessageService rabbitMessageService)
+        public SellFundsHandler(RabbitMessageService rabbitMessageService)
         {
-            _userService = CrudUsers;
             _rabbitMessageService = rabbitMessageService;
         }
 

@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using StocksApp.Infrastructure.ExternalServices;
-using StocksApp.Domain.Entities.DbEntities;
+using RabbitMQAndGenericRepository.Repositorio.DbEntities;
+using StocksDll;
 using StocksApp.Application.Dtos.DbDtos;
 
 namespace StocksApp.Application.UseCases.DbUseCases
@@ -10,21 +11,21 @@ namespace StocksApp.Application.UseCases.DbUseCases
 
     public class GetAllStocksHandler : IRequestHandler<GetAllStocksQuery, List<StockDbDto>>
     {
-        private readonly CrudStocks _stockService;
-        private readonly CrudPrices _priceService;
-        public GetAllStocksHandler(CrudStocks CrudStocks, CrudPrices priceService)
+        private readonly StockRepository stockRepository;
+        private readonly PriceRepository priceRepository;
+        public GetAllStocksHandler(StockRepository StockRepository, PriceRepository priceService)
         {
-            _stockService = CrudStocks;
-            _priceService = priceService;
+            stockRepository = StockRepository;
+            priceRepository = priceService;
         }
 
         public async Task<List<StockDbDto>> Handle(GetAllStocksQuery request, CancellationToken cancellationToken)
         {
-            List<StockDb> stocks = await _stockService.GetAllAsync();
+            IEnumerable<StockDb> stocks = await stockRepository.GetAllAsync();
             List<StockDbDto> result = new List<StockDbDto>();
             foreach (StockDb st in stocks)
             {
-                PriceDb priceDb = await _priceService.GetOnePriceAsync(st.price_id);
+                PriceDb? priceDb = await priceRepository.GetByIdAsync(st.price_id);
                 PriceDbDto priceDbDto = new PriceDbDto(priceDb.price, priceDb.date);
                 StockDbDto stockDbDto = new StockDbDto(st.symbol, st.name, st.description, priceDbDto);
                 result.Add(stockDbDto);
@@ -38,19 +39,19 @@ namespace StocksApp.Application.UseCases.DbUseCases
 
     public class GetStockByIdHandler : IRequestHandler<GetStockByIdQuery, StockDbDto>
     {
-        private readonly CrudStocks _stockService;
-        private readonly CrudPrices _priceService;
+        private readonly StockRepository stockRepository;
+        private readonly PriceRepository priceRepository;
 
-        public GetStockByIdHandler(CrudStocks CrudStocks, CrudPrices priceService)
+        public GetStockByIdHandler(StockRepository StockRepository, PriceRepository priceService)
         {
-            _stockService = CrudStocks;
-            _priceService = priceService;
+            stockRepository = StockRepository;
+            priceRepository = priceService;
         }
 
         public async Task<StockDbDto> Handle(GetStockByIdQuery request, CancellationToken cancellationToken)
         {
-            StockDb? stock =  await _stockService.GetByIdAsync(request.Id);
-            PriceDb priceDb = await _priceService.GetOnePriceAsync(stock.price_id);
+            StockDb? stock =  await stockRepository.GetByIdAsync(request.Id);
+            PriceDb priceDb = await priceRepository.GetByIdAsync(stock.price_id);
             PriceDbDto priceDbDto = new PriceDbDto(priceDb.price, priceDb.date);
             StockDbDto stockDbDto = new StockDbDto(stock.symbol,stock.name,stock.description,priceDbDto);
             return stockDbDto;
@@ -59,17 +60,17 @@ namespace StocksApp.Application.UseCases.DbUseCases
     public record GetStockByNameQuery(string name) : IRequest<StockDbDto>;
     public class GetStockByNameHandler : IRequestHandler<GetStockByNameQuery, StockDbDto>
     {
-        private readonly CrudStocks _stockService;
-        private readonly CrudPrices _priceService;
-        public GetStockByNameHandler(CrudStocks CrudStocks, CrudPrices priceService)
+        private readonly StockRepository stockRepository;
+        private readonly PriceRepository priceRepository;
+        public GetStockByNameHandler(StockRepository StockRepository, PriceRepository priceService)
         {
-            _stockService = CrudStocks;
-            _priceService = priceService;
+            stockRepository = StockRepository;
+            priceRepository = priceService;
         }
         public async Task<StockDbDto> Handle(GetStockByNameQuery request, CancellationToken cancellationToken)
         {
-            StockDb? stock = await _stockService.GetOneByNameAsync(request.name);
-            PriceDb priceDb = await _priceService.GetOnePriceAsync(stock.price_id);
+            StockDb? stock = await stockRepository.GetOneByNameAsync(request.name);
+            PriceDb priceDb = await priceRepository.GetByIdAsync(stock.price_id);
             PriceDbDto priceDbDto = new PriceDbDto(priceDb.price, priceDb.date);
             StockDbDto stockDbDto = new StockDbDto(stock.symbol, stock.name, stock.description, priceDbDto);
             return stockDbDto;
@@ -78,14 +79,17 @@ namespace StocksApp.Application.UseCases.DbUseCases
     public record GetStockPriceByNameQuery(string name) : IRequest<PriceDbDto?>;
     public class GetStockPriceByNameHandler : IRequestHandler<GetStockPriceByNameQuery, PriceDbDto?>
     {
-        private readonly CrudStocks _stockService;
-        public GetStockPriceByNameHandler(CrudStocks CrudStocks, CrudPrices priceService)
+        private readonly StockRepository stockRepository;
+        private readonly PriceRepository priceRepository;
+        public GetStockPriceByNameHandler(StockRepository StockRepository, PriceRepository priceService)
         {
-            _stockService = CrudStocks;
+            stockRepository = StockRepository;
+            priceRepository = priceService;
         }
         public async Task<PriceDbDto?> Handle(GetStockPriceByNameQuery request, CancellationToken cancellationToken)
         {
-            PriceDb? priceDb = await _stockService.GetStockPriceByNameAsync(request.name);
+            StockDb? stockDb = await stockRepository.GetOneByNameAsync(request.name);
+            PriceDb? priceDb = await priceRepository.GetByIdAsync(stockDb.price_id);
             if (priceDb == null)
             {
                 return null;
@@ -102,16 +106,16 @@ namespace StocksApp.Application.UseCases.DbUseCases
 
     public class AddStockHandler : IRequestHandler<AddStockCommand>
     {
-        private readonly CrudStocks _stockService;
+        private readonly StockRepository stockRepository;
 
-        public AddStockHandler(CrudStocks CrudStocks)
+        public AddStockHandler(StockRepository StockRepository)
         {
-            _stockService = CrudStocks;
+            stockRepository = StockRepository;
         }
 
         public async Task Handle(AddStockCommand request, CancellationToken cancellationToken)
         {
-            await _stockService.AddAsync(request.Stock);
+            await stockRepository.AddAsync(request.Stock);
         }
     }
 
@@ -120,16 +124,16 @@ namespace StocksApp.Application.UseCases.DbUseCases
 
     public class UpdateStockHandler : IRequestHandler<UpdateStockCommand>
     {
-        private readonly CrudStocks _stockService;
+        private readonly StockRepository stockRepository;
 
-        public UpdateStockHandler(CrudStocks CrudStocks)
+        public UpdateStockHandler(StockRepository StockRepository)
         {
-            _stockService = CrudStocks;
+            stockRepository = StockRepository;
         }
 
         public async Task Handle(UpdateStockCommand request, CancellationToken cancellationToken)
         {
-            await _stockService.UpdateAsync(request.Stock);
+            await stockRepository.UpdateAsync(request.Stock);
         }
     }
 // --- DELETE ---
@@ -137,15 +141,15 @@ namespace StocksApp.Application.UseCases.DbUseCases
 
     public class DeleteStockHandler : IRequestHandler<DeleteStockCommand>
     {
-        private readonly CrudStocks _stockService;
+        private readonly StockRepository stockRepository;
 
-        public DeleteStockHandler(CrudStocks CrudStocks)
+        public DeleteStockHandler(StockRepository StockRepository)
         {
-            _stockService = CrudStocks;
+            stockRepository = StockRepository;
         }
 
         public async Task Handle(DeleteStockCommand request, CancellationToken cancellationToken)
         {
-            await _stockService.DeleteAsync(request.Id);
+            await stockRepository.DeleteAsync(request.Id);
         }
     }*/

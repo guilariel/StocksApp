@@ -9,7 +9,9 @@ using StocksApp.Domain.Repositorys;
 using StocksApp.Infrastructure.ExternalServices;
 using StocksApp.Infrastructure.Utilities;
 using StocksApp.Application.UseCases.DbUseCases;
-using Microsoft.AspNetCore.Cors; // Asegúrate de incluir este espacio de nombres
+using Microsoft.AspNetCore.Cors;
+using RabbitMQAndGenericRepository.Repositorio;
+using StocksDll; // Asegúrate de incluir este espacio de nombres
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,7 +34,7 @@ builder.Services.Configure<ConnectionStringsOptions>(
 
 var connectionString = builder.Configuration.GetConnectionString("DataBase");
 
-builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddDbContext<DbContext, GenericDbContext>(options =>
     options.UseNpgsql(connectionString)
 );
 // Add services to the container.
@@ -65,17 +67,14 @@ builder.Services.AddTransient<ActualizeDbByRabbitHandler>();
 builder.Services.AddHttpClient<FinnhubSymbolClient>();
 builder.Services.AddHttpClient<FinnhubQuoteClient>();
 
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString)
-);
 // Configurar Entity Framework y PostgreSQL
 builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(Program).Assembly)
 );
-builder.Services.AddTransient<CrudPossession>();
-builder.Services.AddTransient<CrudPrices>();
-builder.Services.AddTransient<CrudStocks>();
-builder.Services.AddTransient<CrudUsers>();
+builder.Services.AddTransient<InPossessionRepository>();
+builder.Services.AddTransient<PriceRepository>();
+builder.Services.AddTransient<StockRepository>();
+builder.Services.AddTransient<UserRepository>();
 
 builder.Services.AddTransient<GetAllInPossessionsHandler>();
 builder.Services.AddTransient<GetInPossessionHandler>();

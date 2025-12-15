@@ -2,9 +2,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
 using PurchaseStocks.Application.Handlers;
-using PurchaseStocks.Application.UseCases;
-using PurchaseStocks.Infrastructure;
+using PurchaseDll;
 using RabbitMQAndGenericRepository.RabbitMq;
+using RabbitMQAndGenericRepository.Repositorio;
 
 var builder = WebApplication.CreateBuilder(args);
 //setx ConnectionString_SellStocksDb "Host=localhost;Port=5432;Database=SellStocksDataBase;Username=postgres;Password=2325"
@@ -15,7 +15,7 @@ if (string.IsNullOrEmpty(connectionString))
     throw new InvalidOperationException("No se encontró ninguna cadena de conexión configurada.");
 }
 
-builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddDbContext<DbContext, GenericDbContext>(options =>
     options.UseNpgsql(connectionString)
 );
 //  UseSqlServer, UseSqlite, etc., según tu base de datos
@@ -30,27 +30,11 @@ builder.Services.Configure<RabbitMQOptions>(
 builder.Services.AddSingleton(resolver =>
     resolver.GetRequiredService<IOptions<RabbitMQOptions>>().Value);
 builder.Services.AddTransient<RabbitMessageService>();
-builder.Services.AddTransient<CrudPossession>();
-builder.Services.AddTransient<CrudPrices>();
-builder.Services.AddTransient<CrudStocks>();
-builder.Services.AddTransient<CrudUsers>();
 
 builder.Services.AddTransient<AddPossessionHandler>();
-builder.Services.AddTransient<GetAllInPossessionsHandler>();
-builder.Services.AddTransient<GetInPossessionHandler>();
-builder.Services.AddTransient<GetPossessionByNameHandler>();
+builder.Services.AddScoped<StockRepository>();
+builder.Services.AddScoped<UserRepository>();
 
-builder.Services.AddTransient<GetOnePriceHandler>();
-builder.Services.AddTransient<GetAllPricesHandler>();
-
-builder.Services.AddTransient<GetAllStocksHandler>();
-builder.Services.AddTransient<GetStockByIdHandler>();
-builder.Services.AddTransient<GetStockByNameHandler>();
-builder.Services.AddTransient<GetStockPriceByNameHandler>();
-
-builder.Services.AddTransient<GetAllUsersHandler>();
-builder.Services.AddTransient<GetUserByIdHandler>();
-builder.Services.AddTransient<GetUserByNameHandler>();
 
 builder.Services.AddCors(options =>
 {

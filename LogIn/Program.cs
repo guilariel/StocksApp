@@ -1,11 +1,12 @@
 using LogIn.Application.UseCases;
 using LogIn.Domain.Hashing;
-using LogIn.Infrastructure;
+using LogInLibrary;
 using Microsoft.AspNetCore.Authentication.JwtBearer; // Agregar esta línea
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using RabbitMQAndGenericRepository.RabbitMq;
+using RabbitMQAndGenericRepository.Repositorio;
 using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,7 +27,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddSingleton(new JwtService(key));
 
 var connectionString = builder.Configuration.GetConnectionString("DataBase");
-builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddDbContext<DbContext, GenericDbContext>(options =>
     options.UseNpgsql(connectionString));
 builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(Program).Assembly)
@@ -37,7 +38,7 @@ builder.Services.Configure<RabbitMQOptions>(
 builder.Services.AddSingleton(resolver =>
     resolver.GetRequiredService<IOptions<RabbitMQOptions>>().Value);
 builder.Services.AddTransient<RabbitMessageService>();
-builder.Services.AddTransient<CrudUsers>();
+builder.Services.AddTransient<UserRepository>();
 builder.Services.AddTransient<GetAllUsersHandler>();
 builder.Services.AddTransient<GetUserByIdHandler>();
 builder.Services.AddTransient<GetUserByNameHandler>();

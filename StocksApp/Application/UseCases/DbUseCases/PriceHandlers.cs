@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using StocksApp.Infrastructure.ExternalServices;
-using StocksApp.Domain.Entities.DbEntities;
+using RabbitMQAndGenericRepository.Repositorio.DbEntities;
+using StocksDll;
 using StocksApp.Application.Dtos.DbDtos;
 
 namespace StocksApp.Application.UseCases.DbUseCases
@@ -8,14 +9,14 @@ namespace StocksApp.Application.UseCases.DbUseCases
     public record GetAllPricesQuery() : IRequest<List<PriceDbDto>>;
     public class GetAllPricesHandler : IRequestHandler<GetAllPricesQuery, List<PriceDbDto>>
     {
-        private readonly CrudPrices crudPrices;
-        public GetAllPricesHandler(CrudPrices crudPrices)
+        private readonly PriceRepository priceRepository;
+        public GetAllPricesHandler(PriceRepository priceRepository)
         {
-            this.crudPrices = crudPrices;
+            this.priceRepository = priceRepository;
         }
         public async Task<List<PriceDbDto>> Handle(GetAllPricesQuery request, CancellationToken cancellationToken)
         {
-            List<PriceDb> prices = await crudPrices.GetAllPricesAsync();
+            IEnumerable<PriceDb> prices = await priceRepository.GetAllAsync();
             List<PriceDbDto> result = new List<PriceDbDto>();
             foreach (PriceDb pr in prices) 
             {
@@ -29,14 +30,14 @@ namespace StocksApp.Application.UseCases.DbUseCases
 
     public class GetOnePriceHandler : IRequestHandler<GetOnePriceQuery, PriceDbDto>
     {
-        private readonly CrudPrices crudPrices;
-        public GetOnePriceHandler(CrudPrices crudPrices)
+        private readonly PriceRepository priceRepository;
+        public GetOnePriceHandler(PriceRepository priceRepository)
         {
-            this.crudPrices = crudPrices;
+            this.priceRepository = priceRepository;
         }
         public async Task<PriceDbDto> Handle(GetOnePriceQuery request, CancellationToken cancellationToken)
         {
-            PriceDb priceDb = await crudPrices.GetOnePriceAsync(request.id);
+            PriceDb? priceDb = await priceRepository.GetByIdAsync(request.id);
             PriceDbDto priceDbDto = new PriceDbDto(priceDb.price, priceDb.date);
             return priceDbDto;
         }
@@ -46,39 +47,39 @@ namespace StocksApp.Application.UseCases.DbUseCases
  *     public record AddOnePriceQuery(PriceDbDto price) : IRequest;
     public class AddOnePriceHandler : IRequestHandler<AddOnePriceQuery>
     {
-        private readonly CrudPrices crudPrices;
-        public AddOnePriceHandler(CrudPrices crudPrices)
+        private readonly priceRepository priceRepository;
+        public AddOnePriceHandler(priceRepository priceRepository)
         {
-            this.crudPrices = crudPrices;
+            this.priceRepository = priceRepository;
         }
         public async Task Handle(AddOnePriceQuery request, CancellationToken cancellationToken)
         {
-            await crudPrices.AddPrice(request.price);
+            await priceRepository.AddPrice(request.price);
         }
     }
     public record UpdateOnePriceQuery(PriceDbDto price) : IRequest;
     public class UpdateOnePriceHandler : IRequestHandler<UpdateOnePriceQuery>
     {
-        private readonly CrudPrices crudPrices;
-        public UpdateOnePriceHandler(CrudPrices crudPrices)
+        private readonly priceRepository priceRepository;
+        public UpdateOnePriceHandler(priceRepository priceRepository)
         {
-            this.crudPrices = crudPrices;
+            this.priceRepository = priceRepository;
         }
         public async Task Handle(UpdateOnePriceQuery request, CancellationToken cancellationToken)
         {
-            await crudPrices.UpdatePrice(request.price);
+            await priceRepository.UpdatePrice(request.price);
         }
     }
  * public record DeleteOnePriceQuery(int id) : IRequest;
     public class DeleteOnePriceHandler : IRequestHandler<DeleteOnePriceQuery> 
     {
-        private readonly CrudPrices crudPrices;
-        public DeleteOnePriceHandler(CrudPrices crudPrices)
+        private readonly priceRepository priceRepository;
+        public DeleteOnePriceHandler(priceRepository priceRepository)
         {
-            this.crudPrices = crudPrices;
+            this.priceRepository = priceRepository;
         }
         public async Task Handle(DeleteOnePriceQuery request, CancellationToken cancellationToken)
         {
-            await crudPrices.DeleteOnePrice(request.id);
+            await priceRepository.DeleteOnePrice(request.id);
         }
     }*/

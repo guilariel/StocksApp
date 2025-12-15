@@ -1,5 +1,7 @@
 ﻿using MediatR;
+using RabbitMQAndGenericRepository.Repositorio.DbEntities;
 using StocksApp.Infrastructure.ExternalServices;
+using StocksDll;
 
 namespace StocksApp.Application.UseCases.DbUseCases
 {
@@ -7,24 +9,24 @@ namespace StocksApp.Application.UseCases.DbUseCases
     public class ActualizeDbByRabbitHandler : IRequestHandler<ActualizeDbByRabbitCommand>
     {
         private readonly UpdateDbs _updateDbs;
-        private readonly CrudPossession crudPossession;
-        private readonly CrudUsers crudUser;
-        private readonly CrudStocks crudStock;
-        private readonly CrudPrices crudPrice;
-        public ActualizeDbByRabbitHandler(UpdateDbs updateDbs, CrudPossession crudPossession, CrudUsers crudUser, CrudStocks crudStock, CrudPrices crudPrice)
+        private readonly InPossessionRepository possessionRepository;
+        private readonly UserRepository userRepository;
+        private readonly StockRepository stockRepository;
+        private readonly PriceRepository priceRepository;
+        public ActualizeDbByRabbitHandler(UpdateDbs updateDbs, InPossessionRepository service, UserRepository UserRepository, StockRepository StockRepository, PriceRepository PriceRepository)
         {
             _updateDbs = updateDbs;
-            this.crudPossession = crudPossession;
-            this.crudUser = crudUser;
-            this.crudStock = crudStock;
-            this.crudPrice = crudPrice;
+            possessionRepository = service;
+            userRepository = UserRepository;
+            stockRepository = StockRepository;
+            priceRepository = PriceRepository;
         }
         public async Task Handle(ActualizeDbByRabbitCommand request, CancellationToken cancellationToken)
         {
-            var possessions = await crudPossession.GetAllAsync();
-            var users = await crudUser.GetAllAsync();
-            var stocks = await crudStock.GetAllAsync();
-            var prices = await crudPrice.GetAllPricesAsync();
+            IEnumerable<InPossessionDb> possessions = await possessionRepository.GetAllAsync();
+            IEnumerable<UsersDb> users = await userRepository.GetAllAsync();
+            IEnumerable<StockDb> stocks = await stockRepository.GetAllAsync();
+            IEnumerable<PriceDb> prices = await priceRepository.GetAllAsync();
             await _updateDbs.UpdateAllDb(possessions, users, stocks, prices);
         }
     }
