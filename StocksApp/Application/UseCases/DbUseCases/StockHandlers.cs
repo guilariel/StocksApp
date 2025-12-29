@@ -25,8 +25,8 @@ namespace StocksApp.Application.UseCases.DbUseCases
             List<StockDbDto> result = new List<StockDbDto>();
             foreach (StockDb st in stocks)
             {
-                PriceDb? priceDb = await priceRepository.GetByIdAsync(st.price_id);
-                PriceDbDto priceDbDto = new PriceDbDto(priceDb.price, priceDb.date);
+                PriceHistoryDb? priceDb = await priceRepository.GetLatestAsync(st.id);
+                PriceDbDto? priceDbDto = new PriceDbDto(priceDb.price, priceDb.date);
                 StockDbDto stockDbDto = new StockDbDto(st.symbol, st.name, st.description, priceDbDto);
                 result.Add(stockDbDto);
             }
@@ -51,7 +51,7 @@ namespace StocksApp.Application.UseCases.DbUseCases
         public async Task<StockDbDto> Handle(GetStockByIdQuery request, CancellationToken cancellationToken)
         {
             StockDb? stock =  await stockRepository.GetByIdAsync(request.Id);
-            PriceDb priceDb = await priceRepository.GetByIdAsync(stock.price_id);
+            PriceHistoryDb priceDb = await priceRepository.GetLatestAsync(stock.id);
             PriceDbDto priceDbDto = new PriceDbDto(priceDb.price, priceDb.date);
             StockDbDto stockDbDto = new StockDbDto(stock.symbol,stock.name,stock.description,priceDbDto);
             return stockDbDto;
@@ -70,7 +70,7 @@ namespace StocksApp.Application.UseCases.DbUseCases
         public async Task<StockDbDto> Handle(GetStockByNameQuery request, CancellationToken cancellationToken)
         {
             StockDb? stock = await stockRepository.GetOneByNameAsync(request.name);
-            PriceDb priceDb = await priceRepository.GetByIdAsync(stock.price_id);
+            PriceHistoryDb priceDb = await priceRepository.GetLatestAsync(stock.id);
             PriceDbDto priceDbDto = new PriceDbDto(priceDb.price, priceDb.date);
             StockDbDto stockDbDto = new StockDbDto(stock.symbol, stock.name, stock.description, priceDbDto);
             return stockDbDto;
@@ -89,7 +89,7 @@ namespace StocksApp.Application.UseCases.DbUseCases
         public async Task<PriceDbDto?> Handle(GetStockPriceByNameQuery request, CancellationToken cancellationToken)
         {
             StockDb? stockDb = await stockRepository.GetOneByNameAsync(request.name);
-            PriceDb? priceDb = await priceRepository.GetByIdAsync(stockDb.price_id);
+            PriceHistoryDb? priceDb = await priceRepository.GetLatestAsync(stockDb.id);
             if (priceDb == null)
             {
                 return null;

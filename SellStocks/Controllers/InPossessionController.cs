@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using PurchaseStocks.Application.Handlers;
 
-namespace PurchaseStocks.Controllers
+namespace SellStocks.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]

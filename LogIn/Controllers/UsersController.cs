@@ -16,18 +16,6 @@ namespace PurchaseStocks.Controllers
             _mediator = mediator;
         }
 
-        [HttpGet]
-        public async Task<ActionResult<List<UsersDbDto>>> Get() =>
-            Ok(await _mediator.Send(new GetAllUsersQuery()));
-
-        [HttpGet("id/{id}")]
-        public async Task<ActionResult<UsersDbDto>> GetOne(int id) =>
-            Ok(await _mediator.Send(new GetUserByIdQuery(id)));
-
-        [HttpGet("name/{name}")]
-        public async Task<ActionResult<UsersDbDto>> GetByName(string name) =>
-            Ok(await _mediator.Send(new GetUserByNameQuery(name)));
-
         [HttpPost("login")]
         public async Task<IActionResult> UserLogIn([FromBody] LoginRequest request)
         {
@@ -53,10 +41,16 @@ namespace PurchaseStocks.Controllers
             var userName = User.Identity?.Name ?? "Usuario";
             return Ok(new { message = $"Hola {userName}, estás autenticado ✅" });
         }
-        [HttpPost("AddFunds/{name}/{amount}")]
-        public async Task<IActionResult> AddFunds(string name, double amount)
+        [HttpPost("AddFunds/{name}/{amount}/{currency}")]
+        public async Task<IActionResult> AddFunds(string name, double amount, string currency)
         {
-            await _mediator.Send(new AddFundsQuery(name, amount));
+            await _mediator.Send(new AddFundsQuery(name, amount, currency));
+            return Ok("Fondos agregados correctamente");
+        }
+        [HttpDelete("SellFunds/{name}/{amount}/{currency}")]
+        public async Task<IActionResult> SellFunds(string name, double amount, string currency)
+        {
+            await _mediator.Send(new SellFundsQuery(name, amount, currency));
             return Ok("Fondos agregados correctamente");
         }
     }

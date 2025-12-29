@@ -9,25 +9,18 @@ using System.Threading.Tasks;
 
 namespace StocksDll
 {
-    internal interface IInPossessionRepository : IRepository<InPossessionDb>
+    internal interface IInPossessionRepository : IRepository<InPossessionDb, InPossessionStruct>
     {
+        Task<List<InPossessionDb>> GetAllByOwnerAsync(int owner_id);
     }
-    public class InPossessionRepository : EFRepository<InPossessionDb>, IInPossessionRepository
+    public class InPossessionRepository : EFRepository<InPossessionDb, InPossessionStruct>, IInPossessionRepository
     {
         public InPossessionRepository(DbContext context) : base(context)
         {
         }
-        public async Task<InPossessionDb?> GetOneAsync(int ownerId, int symbolId)
+        public async Task<List<InPossessionDb>> GetAllByOwnerAsync(int owner_id)
         {
-            return await _entities.AsNoTracking().SingleOrDefaultAsync(
-                i => i.id == ownerId && i.stock_id == symbolId
-            );
-        }
-        public async Task<List<InPossessionDb>> GetPossessionsByOwnerId(int ownerId)
-        {
-            return await _entities.AsNoTracking()
-                .Where(i => i.id == ownerId)
-                .ToListAsync();
+            return await _entities.Where(id => id.owner_id == owner_id).ToListAsync();
         }
     }
 }

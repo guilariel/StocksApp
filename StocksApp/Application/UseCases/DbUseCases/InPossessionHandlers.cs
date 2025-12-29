@@ -27,9 +27,9 @@ namespace StocksApp.Application.UseCases.DbUseCases
             List<InPossessionDbDto> result = new List<InPossessionDbDto>();
             foreach (InPossessionDb pos in possessions)
             {
-                UsersDb? user =  await userRepository.GetByIdAsync(pos.id);
+                UsersDb? user =  await userRepository.GetByIdAsync(pos.owner_id);
                 StockDb? stock = await stockRepository.GetByIdAsync(pos.stock_id);
-                UsersDbDto userDto = new UsersDbDto(user.name, user.funds);
+                UsersDbDto userDto = new UsersDbDto(user.name);
                 StockDbDto stockDto = new StockDbDto(stock.symbol, stock.name, stock.description, null);
                 InPossessionDbDto possessionDbDto = new InPossessionDbDto(userDto,stockDto,pos.amount);
                 result.Add(possessionDbDto);
@@ -56,10 +56,10 @@ namespace StocksApp.Application.UseCases.DbUseCases
 
         public async Task<InPossessionDbDto?> Handle(GetInPossessionQuery request, CancellationToken cancellationToken)
         {
-            InPossessionDb? possessionDb = await possessionRepository.GetOneAsync(request.OwnerId, request.SymbolId);
-            UsersDb? user = await userRepository.GetByIdAsync(possessionDb.id);
+            InPossessionDb? possessionDb = await possessionRepository.GetByIdAsync(request.OwnerId, request.SymbolId);
+            UsersDb? user = await userRepository.GetByIdAsync(possessionDb.owner_id);
             StockDb? stock = await stockRepository.GetByIdAsync(possessionDb.stock_id);
-            UsersDbDto userDto = new UsersDbDto(user.name, user.funds);
+            UsersDbDto userDto = new UsersDbDto(user.name);
             StockDbDto stockDto = new StockDbDto(stock.symbol, stock.name, stock.description, null);
             InPossessionDbDto possessionDbDto = new InPossessionDbDto(userDto, stockDto, possessionDb.amount);
             return possessionDbDto;
@@ -83,14 +83,14 @@ namespace StocksApp.Application.UseCases.DbUseCases
         public async Task<List<InPossessionDbDto>> Handle(GetPossessionByNameQuery request, CancellationToken cancellationToken)
         {
             UsersDb? owner = await userRepository.GetOneByNameAsync(request.OwnerName);
-            List<InPossessionDb> possessions = await possessionRepository.GetPossessionsByOwnerId(owner.id);
+            List<InPossessionDb> possessions = await possessionRepository.GetAllByOwnerAsync(owner.id);
             List<InPossessionDbDto> result = new List<InPossessionDbDto>();
             foreach (InPossessionDb pos in possessions)
             {
-                UsersDb? user = await userRepository.GetByIdAsync(pos.id);
+                UsersDb? user = await userRepository.GetByIdAsync(pos.owner_id);
                 StockDb? stock = await stockRepository.GetByIdAsync(pos.stock_id);
-                UsersDbDto? userDto = new UsersDbDto(user.name, user.funds);
-                PriceDb? priceDb = await priceRepository.GetByIdAsync(stock.price_id);
+                UsersDbDto? userDto = new UsersDbDto(user.name);
+                PriceHistoryDb? priceDb = await priceRepository.GetLatestAsync(stock.id);
                 PriceDbDto priceDbDto = new PriceDbDto(priceDb.price, priceDb.date);
                 StockDbDto stockDto = new StockDbDto(stock.symbol, stock.name, stock.description, priceDbDto);
                 InPossessionDbDto possessionDbDto = new InPossessionDbDto(userDto, stockDto, pos.amount);

@@ -16,9 +16,9 @@ namespace StocksApp.Application.UseCases.DbUseCases
         }
         public async Task<List<PriceDbDto>> Handle(GetAllPricesQuery request, CancellationToken cancellationToken)
         {
-            IEnumerable<PriceDb> prices = await priceRepository.GetAllAsync();
+            IEnumerable<PriceHistoryDb> prices = await priceRepository.GetAllAsync();
             List<PriceDbDto> result = new List<PriceDbDto>();
-            foreach (PriceDb pr in prices) 
+            foreach (PriceHistoryDb pr in prices) 
             {
                 PriceDbDto priceDbDto = new PriceDbDto(pr.price, pr.date);
                 result.Add(priceDbDto);
@@ -37,7 +37,7 @@ namespace StocksApp.Application.UseCases.DbUseCases
         }
         public async Task<PriceDbDto> Handle(GetOnePriceQuery request, CancellationToken cancellationToken)
         {
-            PriceDb? priceDb = await priceRepository.GetByIdAsync(request.id);
+            PriceHistoryDb? priceDb = await priceRepository.GetLatestAsync(request.id);
             PriceDbDto priceDbDto = new PriceDbDto(priceDb.price, priceDb.date);
             return priceDbDto;
         }

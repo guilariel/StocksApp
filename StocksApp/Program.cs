@@ -1,16 +1,16 @@
 using Hangfire;
 using Hangfire.PostgreSql;
+using Microsoft.AspNetCore.Cors;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using RabbitMQAndGenericRepository.RabbitMq;
+using RabbitMQAndGenericRepository.Repositorio;
+using StocksApp.Application.UseCases.DbUseCases;
 using StocksApp.Application.UseCases.RepositoryUseCases;
 using StocksApp.Domain.Repositorys;
 using StocksApp.Infrastructure.ExternalServices;
 using StocksApp.Infrastructure.Utilities;
-using StocksApp.Application.UseCases.DbUseCases;
-using Microsoft.AspNetCore.Cors;
-using RabbitMQAndGenericRepository.Repositorio;
 using StocksDll; // Asegúrate de incluir este espacio de nombres
 
 var builder = WebApplication.CreateBuilder(args);
@@ -75,6 +75,8 @@ builder.Services.AddTransient<InPossessionRepository>();
 builder.Services.AddTransient<PriceRepository>();
 builder.Services.AddTransient<StockRepository>();
 builder.Services.AddTransient<UserRepository>();
+builder.Services.AddTransient<TransactionRepository>();
+builder.Services.AddTransient<UserFundsRepository>();
 
 builder.Services.AddTransient<GetAllInPossessionsHandler>();
 builder.Services.AddTransient<GetInPossessionHandler>();
@@ -91,6 +93,9 @@ builder.Services.AddTransient<GetStockPriceByNameHandler>();
 builder.Services.AddTransient<GetAllUsersHandler>();
 builder.Services.AddTransient<GetUserByIdHandler>();
 builder.Services.AddTransient<GetUserByNameHandler>();
+
+builder.Services.AddTransient<GetAllTransactionsHandler>();
+builder.Services.AddTransient<GetTransactionsByOwnerHandler>();
 
 builder.Services.AddTransient<UpdateDbs>();
 

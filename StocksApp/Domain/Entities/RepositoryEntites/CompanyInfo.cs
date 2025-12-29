@@ -3,7 +3,7 @@ using System.Xml.Linq;
 using RabbitMQAndGenericRepository.Repositorio;
 namespace StocksApp.Domain.Entities.RepositoryEntites
 {
-    public class CompanyInfo : IEntity<string>
+    public class CompanyInfo : IEntitys<string>
     {
         public string Description { get; } 
         public string DisplaySymbol { get; }

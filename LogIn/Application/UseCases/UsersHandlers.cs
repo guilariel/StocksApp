@@ -1,72 +1,14 @@
-﻿using MediatR;
-using SellStocks.Application.Dtos;
-using RabbitMQAndGenericRepository.Repositorio.DbEntities;
-using RabbitMQAndGenericRepository.RabbitMq;
+﻿using LogIn.Application.Dtos;
 using LogIn.Domain.Hashing;
+using LogInDll;
 using LogInLibrary;
+using MediatR;
+using RabbitMQAndGenericRepository.RabbitMq;
+using RabbitMQAndGenericRepository.Repositorio.DbEntities;
+using SellStocks.Application.Dtos;
 
 namespace LogIn.Application.UseCases
 {
-    // --- GET ALL ---
-    public record GetAllUsersQuery() : IRequest<List<UsersDbDto>>;
-
-    public class GetAllUsersHandler : IRequestHandler<GetAllUsersQuery, List<UsersDbDto>>
-    {
-        private readonly UserRepository _userRepository;
-
-        public GetAllUsersHandler(UserRepository userRepository)
-        {
-            _userRepository = userRepository;
-        }
-
-        public async Task<List<UsersDbDto>> Handle(GetAllUsersQuery request, CancellationToken cancellationToken)
-        {
-            IEnumerable<UsersDb> users = await _userRepository.GetAllAsync();
-            List<UsersDbDto> result = new List<UsersDbDto>();
-            foreach (UsersDb us in users)
-            {
-                UsersDbDto userDbDto = new UsersDbDto(us.name, us.funds);
-                result.Add(userDbDto);
-            }
-            return await Task.FromResult(result);
-        }
-    }
-
-    // --- GET ONE ---
-    public record GetUserByIdQuery(int Id) : IRequest<UsersDbDto?>;
-
-    public class GetUserByIdHandler : IRequestHandler<GetUserByIdQuery, UsersDbDto?>
-    {
-        private readonly UserRepository _userRepository;
-
-        public GetUserByIdHandler(UserRepository userRepository)
-        {
-            _userRepository = userRepository;
-        }
-
-        public async Task<UsersDbDto?> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
-        {
-            UsersDb user = await _userRepository.GetByIdAsync(request.Id);
-            UsersDbDto result = new UsersDbDto(user.name,user.funds);
-            return await Task.FromResult(result);
-        }
-    }
-    public record GetUserByNameQuery(string name) : IRequest<UsersDbDto?>;
-    public class GetUserByNameHandler : IRequestHandler<GetUserByNameQuery, UsersDbDto?>
-    {
-        private readonly UserRepository _userRepository;
-
-        public GetUserByNameHandler(UserRepository userRepository)
-        {
-            _userRepository = userRepository;
-        }
-        public async Task<UsersDbDto?> Handle(GetUserByNameQuery request, CancellationToken cancellationToken)
-        {
-            UsersDb user = await _userRepository.GetOneByNameAsync(request.name);
-            UsersDbDto result = new UsersDbDto(user.name, user.funds);
-            return await Task.FromResult(result);
-        }
-    }
     public record AddUserQuery(string name, string password) : IRequest;
     public class AddUserHandler : IRequestHandler<AddUserQuery>
     {
@@ -112,44 +54,55 @@ namespace LogIn.Application.UseCases
         }
     }
 
-    public record AddFundsQuery(string name, double amount) : IRequest;
+    public record AddFundsQuery(string name, double amount, string currency) : IRequest;
     public class AddFundsHandler : IRequestHandler<AddFundsQuery>
     {
         private readonly RabbitMessageService _rabbitMessageService;
-        public AddFundsHandler(RabbitMessageService rabbitMessageService)
+        private readonly UserRepository _userRepository;
+        public AddFundsHandler(RabbitMessageService rabbitMessageService, UserRepository userRepository)
         {
             _rabbitMessageService = rabbitMessageService;
+            _userRepository = userRepository;
         }
         public async Task Handle(AddFundsQuery request, CancellationToken cancellationToken)
         {
-            UsersDbAddDto usersDbDto = new UsersDbAddDto
+            UsersDb? userDb = await _userRepository.GetOneByNameAsync(request.name);
+            UserFundsDb usersDbDto = new UserFundsDb
             {
-                Name = request.name,
-                Funds = request.amount,
-                password_hash = ""
+                user_id = userDb.id,
+                funds = request.amount,
+                currency = request.currency
             };
-            await _rabbitMessageService.SendMessage<UsersDbAddDto>(usersDbDto, "add");
+            await _rabbitMessageService.SendMessage<UserFundsDb>(usersDbDto, "add");
         }
     }
-    public record SellFundsQuery(string name, double amount) : IRequest;
-    public class SellFundsHandler : IRequestHandler<AddFundsQuery>
+    public record SellFundsQuery(string name, double amount, string currency) : IRequest;
+    public class SellFundsHandler : IRequestHandler<SellFundsQuery>
     {
         private readonly RabbitMessageService _rabbitMessageService;
-
-        public SellFundsHandler(RabbitMessageService rabbitMessageService)
+        private readonly UserRepository _userRepository;
+        private readonly UserFundsRepository _userFundsRepository;
+        public SellFundsHandler(RabbitMessageService rabbitMessageService, UserRepository userRepository, UserFundsRepository userFundsRepository)
         {
             _rabbitMessageService = rabbitMessageService;
+            _userRepository = userRepository;
+            _userFundsRepository = userFundsRepository;
         }
-
-        public async Task Handle(AddFundsQuery request, CancellationToken cancellationToken)
+        public async Task Handle(SellFundsQuery request, CancellationToken cancellationToken)
         {
-            UsersDbAddDto usersDbDto = new UsersDbAddDto
+            UsersDb? userDb = await _userRepository.GetOneByNameAsync(request.name);
+            UserFundsDb userFundsDb = await _userFundsRepository.GetByIdAsync(new UserFundsStruct(userDb.id, request.currency));
+            if (userFundsDb.funds < request.amount)
             {
-                Name = request.name,
-                Funds = request.amount,
-                password_hash = ""
+                throw new Exception("Insufficient funds");
+            }
+            UserFundsDb usersDbDto = new UserFundsDb
+            {
+                user_id = userDb.id,
+                funds = request.amount,
+                currency = request.currency
             };
-            await _rabbitMessageService.SendMessage<UsersDbAddDto>(usersDbDto, "add");
+            await _rabbitMessageService.SendMessage<UserFundsDb>(usersDbDto, "sell");
         }
     }
 }

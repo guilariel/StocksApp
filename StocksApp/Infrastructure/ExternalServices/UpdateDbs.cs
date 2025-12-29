@@ -13,7 +13,7 @@ namespace StocksApp.Infrastructure.ExternalServices
             _context = context;
             _rabbitMessageService = rabbitMessageService;
         }
-        public async Task UpdateAllDb(IEnumerable<InPossessionDb> possessions, IEnumerable<UsersDb> users, IEnumerable<StockDb> stocks, IEnumerable<PriceDb> prices)
+        public async Task UpdateAllDb(IEnumerable<InPossessionDb> possessions, IEnumerable<UsersDb> users, IEnumerable<StockDb> stocks, IEnumerable<PriceHistoryDb> prices)
         {
             foreach(var possession in possessions)
                 await _rabbitMessageService.SendMessage<InPossessionDb>(possession, "add");
@@ -22,7 +22,7 @@ namespace StocksApp.Infrastructure.ExternalServices
             foreach(var stock in stocks)
                 await _rabbitMessageService.SendMessage<StockDb>(stock, "add");
             foreach(var price in prices)
-                await _rabbitMessageService.SendMessage<PriceDb>(price, "add");
+                await _rabbitMessageService.SendMessage<PriceHistoryDb>(price, "add");
         }
     }
 }

@@ -5,36 +5,54 @@ using SellStocks.Application.Dtos;
 using RabbitMQAndGenericRepository.Repositorio.DbEntities;
 using SellDll;
 using StocksApp.Application.Dtos;
+using PurchaseDll;
+using PurchaseStocks.Application.Dtos;
 
 namespace PurchaseStocks.Application.Handlers
 {
-    public record DeleteInPossessionCommand(string user, string stock, int amount) : IRequest;
+    public record DeleteInPossessionCommand(string owner_name, string stock_name, int amount) : IRequest;
     public class DeleteInPossessionHandler : IRequestHandler<DeleteInPossessionCommand>
     {
-        private readonly UserRepository _crudUsers;
-        private readonly StockRepository _crudStocks;
+        private readonly UserRepository _userRepository;
+        private readonly StockRepository _stockRepository;
         private readonly RabbitMessageService _messageService;
-
-        public DeleteInPossessionHandler(UserRepository UserRepository, StockRepository StockRepository, RabbitMessageService messageService)
+        private readonly PriceRepository _priceRepository;
+        public DeleteInPossessionHandler(UserRepository UserRepository, StockRepository StockRepository, RabbitMessageService messageService, PriceRepository priceRepository)
         {
-            _crudUsers = UserRepository;
-            _crudStocks = StockRepository;
+            _userRepository = UserRepository;
+            _stockRepository = StockRepository;
             _messageService = messageService;
+            _priceRepository = priceRepository;
         }
 
         public async Task Handle(DeleteInPossessionCommand request, CancellationToken cancellationToken)
         {
-            StockDb stock = await _crudStocks.GetOneByNameAsync(request.stock);
-            UsersDb user = await _crudUsers.GetOneByNameAsync(request.user);
-            if(stock == null)
-                throw new KeyNotFoundException("Stock not found");
-            InPossessionDb inPossessionDb = new InPossessionDb
+            UsersDb? user = await _userRepository.GetOneByNameAsync(request.owner_name);
+            StockDb? stock = await _stockRepository.GetOneByNameAsync(request.stock_name);
+            PriceHistoryDb? price = await _priceRepository.GetByPriceIdAsync(stock.id);
+            if (user == null || stock == null)
             {
-                id = user.id,
+                throw new Exception("User or Stock not found");
+            }
+            InPossessionDbDto possession = new InPossessionDbDto
+            {
+                owner_id = user.id,
                 stock_id = stock.id,
                 amount = request.amount
             };
-            await _messageService.SendMessage<InPossessionDb>(inPossessionDb,"sell");
+            TransactionDto transaction = new TransactionDto
+            {
+                owner_id = user.id,
+                stock_id = stock.id,
+                amount = request.amount,
+                price = price.price,
+                currency = price.currency,
+                date = DateTime.Now,
+                type = "sell"
+            };
+
+            await _messageService.SendMessage<InPossessionDbDto>(possession, "sell");
+            await _messageService.SendMessage<TransactionDto>(transaction, "add");
         }
     }
 }

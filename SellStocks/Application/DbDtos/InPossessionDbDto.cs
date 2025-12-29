@@ -6,14 +6,8 @@ namespace SellStocks.Application.Dtos
 {
     public class InPossessionDbDto
     {
-        public UsersDbDto Owner { get; set; }
-        public StockDbDto Stock { get; set; }
+        public int owner_id { get; set; }
+        public int stock_id { get; set; }
         public int amount { get; set; }
-        public InPossessionDbDto(UsersDbDto usersDbDto, StockDbDto stockDbDto, int amount) 
-        {
-            this.Owner = usersDbDto;
-            this.Stock = stockDbDto;
-            this.amount = amount;
-        }
     }
 }

@@ -34,6 +34,7 @@ builder.Services.AddTransient<RabbitMessageService>();
 builder.Services.AddTransient<AddPossessionHandler>();
 builder.Services.AddScoped<StockRepository>();
 builder.Services.AddScoped<UserRepository>();
+builder.Services.AddScoped<PriceRepository>();
 
 
 builder.Services.AddCors(options =>

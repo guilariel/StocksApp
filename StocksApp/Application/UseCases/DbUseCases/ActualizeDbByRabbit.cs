@@ -26,7 +26,7 @@ namespace StocksApp.Application.UseCases.DbUseCases
             IEnumerable<InPossessionDb> possessions = await possessionRepository.GetAllAsync();
             IEnumerable<UsersDb> users = await userRepository.GetAllAsync();
             IEnumerable<StockDb> stocks = await stockRepository.GetAllAsync();
-            IEnumerable<PriceDb> prices = await priceRepository.GetAllAsync();
+            IEnumerable<PriceHistoryDb> prices = await priceRepository.GetAllAsync();
             await _updateDbs.UpdateAllDb(possessions, users, stocks, prices);
         }
     }

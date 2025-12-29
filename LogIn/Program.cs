@@ -1,5 +1,6 @@
 using LogIn.Application.UseCases;
 using LogIn.Domain.Hashing;
+using LogInDll;
 using LogInLibrary;
 using Microsoft.AspNetCore.Authentication.JwtBearer; // Agregar esta línea
 using Microsoft.EntityFrameworkCore;
@@ -39,9 +40,8 @@ builder.Services.AddSingleton(resolver =>
     resolver.GetRequiredService<IOptions<RabbitMQOptions>>().Value);
 builder.Services.AddTransient<RabbitMessageService>();
 builder.Services.AddTransient<UserRepository>();
-builder.Services.AddTransient<GetAllUsersHandler>();
-builder.Services.AddTransient<GetUserByIdHandler>();
-builder.Services.AddTransient<GetUserByNameHandler>();
+builder.Services.AddTransient<UserFundsRepository>();
+
 builder.Services.AddTransient<AddUserHandler>();
 builder.Services.AddTransient<UserLogInHandler>();
 

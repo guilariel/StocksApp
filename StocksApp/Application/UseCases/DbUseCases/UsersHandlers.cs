@@ -1,68 +1,129 @@
 ﻿using MediatR;
-using StocksApp.Infrastructure.ExternalServices;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
+using Polly;
+using RabbitMQAndGenericRepository.Repositorio;
 using RabbitMQAndGenericRepository.Repositorio.DbEntities;
-using StocksDll;
 using StocksApp.Application.Dtos.DbDtos;
+using StocksApp.Infrastructure.ExternalServices;
+using StocksDll;
 
 namespace StocksApp.Application.UseCases.DbUseCases
 {
-    // --- GET ALL ---
     public record GetAllUsersQuery() : IRequest<List<UsersDbDto>>;
 
     public class GetAllUsersHandler : IRequestHandler<GetAllUsersQuery, List<UsersDbDto>>
     {
-        private readonly UserRepository userRepository;
+        private readonly UserRepository _userRepository;
 
-        public GetAllUsersHandler(UserRepository UserRepository)
+        public GetAllUsersHandler(UserRepository userRepository)
         {
-            userRepository = UserRepository;
+            _userRepository = userRepository;
         }
 
         public async Task<List<UsersDbDto>> Handle(GetAllUsersQuery request, CancellationToken cancellationToken)
         {
-            IEnumerable<UsersDb> users = await userRepository.GetAllAsync();
+            IEnumerable<UsersDb> users = await _userRepository.GetAllAsync();
             List<UsersDbDto> result = new List<UsersDbDto>();
             foreach (UsersDb us in users)
             {
-                UsersDbDto userDbDto = new UsersDbDto(us.name, us.funds);
+                UsersDbDto userDbDto = new UsersDbDto(us.name);
                 result.Add(userDbDto);
             }
-            return result;
+            return await Task.FromResult(result);
         }
     }
 
     // --- GET ONE ---
-    public record GetUserByIdQuery(int Id) : IRequest<UsersDbDto?>;
+    public record GetUserByIdQuery(int Id, string currency) : IRequest<UserFundsDto?>;
 
-    public class GetUserByIdHandler : IRequestHandler<GetUserByIdQuery, UsersDbDto?>
+    public class GetUserByIdHandler : IRequestHandler<GetUserByIdQuery, UserFundsDto?>
     {
-        private readonly UserRepository userRepository;
-
-        public GetUserByIdHandler(UserRepository UserRepository)
+        private readonly UserRepository _userRepository;
+        private readonly UserFundsRepository _userFundsRepository;
+        public GetUserByIdHandler(UserRepository userRepository, UserFundsRepository userFundsRepository)
         {
-            userRepository = UserRepository;
+            _userRepository = userRepository;
+            _userFundsRepository = userFundsRepository;
         }
 
-        public async Task<UsersDbDto?> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
+        public async Task<UserFundsDto?> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
         {
-            UsersDb user = await userRepository.GetByIdAsync(request.Id);
-            UsersDbDto result = new UsersDbDto(user.name,user.funds);
-            return result;
+            UsersDb user = await _userRepository.GetByIdAsync(request.Id);
+            UserFundsDb funds = await _userFundsRepository.GetByIdAsync(user.id, request.currency);
+            UserFundsDto result = new UserFundsDto(user.name, funds.funds, request.currency);
+            return await Task.FromResult(result);
         }
     }
-    public record GetUserByNameQuery(string name) : IRequest<UsersDbDto?>;
-    public class GetUserByNameHandler : IRequestHandler<GetUserByNameQuery, UsersDbDto?>
+    public record GetUserByNameQuery(string name, string currency) : IRequest<UserFundsDto?>;
+    public class GetUserByNameHandler : IRequestHandler<GetUserByNameQuery, UserFundsDto?>
     {
-        private readonly UserRepository userRepository;
-        public GetUserByNameHandler(UserRepository UserRepository)
+        private readonly UserRepository _userRepository;
+        private readonly UserFundsRepository _userFundsRepository;
+        public GetUserByNameHandler(UserRepository userRepository, UserFundsRepository userFundsRepository)
         {
-            userRepository = UserRepository;
+            _userRepository = userRepository;
+            _userFundsRepository = userFundsRepository;
         }
-        public async Task<UsersDbDto?> Handle(GetUserByNameQuery request, CancellationToken cancellationToken)
+        public async Task<UserFundsDto?> Handle(GetUserByNameQuery request, CancellationToken cancellationToken)
         {
-            UsersDb user = await userRepository.GetOneByNameAsync(request.name);
-            UsersDbDto result = new UsersDbDto(user.name, user.funds);
-            return result;
+            UsersDb user = await _userRepository.GetOneByNameAsync(request.name);
+            UserFundsDb funds = await _userFundsRepository.GetByIdAsync(user.id, request.currency);
+            UserFundsDto result = new UserFundsDto(user.name, funds.funds, request.currency);
+            return await Task.FromResult(result);
+        }
+    }
+
+    public record GetYearlyProffitQuery(string user, string currency) : IRequest<double>;
+
+    public class GetYearlyProffitHandler : IRequestHandler<GetYearlyProffitQuery, double>
+    {
+        private readonly GenericDbContext _genericDbContext;
+        private readonly UserRepository _userRepository;
+        public GetYearlyProffitHandler(GenericDbContext genericDbContext, UserRepository userRepository)
+        {
+            _genericDbContext = genericDbContext;
+            _userRepository = userRepository;
+        }
+        public async Task<double> Handle(GetYearlyProffitQuery request, CancellationToken cancellationToken)
+        {
+            UsersDb usersDb = await _userRepository.GetOneByNameAsync(request.user);
+            var userIdParam = new NpgsqlParameter("owner_id", usersDb.id);
+            var currencyParam = new NpgsqlParameter("currency", request.currency);
+            var profit = await _genericDbContext.Database
+             .SqlQueryRaw<int>(
+        "select get_yearly_profit(@owner_id, @currency) as \"Value\"",
+        userIdParam,
+        currencyParam
+    )
+         .SingleAsync(cancellationToken);
+            return await Task.FromResult(profit);
+        }
+    }
+
+    public record GetMonthlyProffitQuery(string user, string currency) : IRequest<double>;
+    public class GetMonthlyProffitHandler : IRequestHandler<GetMonthlyProffitQuery, double>
+    {
+        private readonly GenericDbContext _genericDbContext;
+        private readonly UserRepository _userRepository;
+        public GetMonthlyProffitHandler(GenericDbContext genericDbContext, UserRepository userRepository)
+        {
+            _genericDbContext = genericDbContext;
+            _userRepository = userRepository;
+        }
+        public async Task<double> Handle(GetMonthlyProffitQuery request, CancellationToken cancellationToken)
+        {
+            UsersDb usersDb = await _userRepository.GetOneByNameAsync(request.user);
+            var userIdParam = new NpgsqlParameter("owner_id", usersDb.id);
+            var currencyParam = new NpgsqlParameter("currency", request.currency);
+            var profit = await _genericDbContext.Database
+             .SqlQueryRaw<int>(
+        "select get_monthly_profit(@owner_id, @currency) as \"Value\"",
+        userIdParam,
+        currencyParam
+    )
+         .SingleAsync(cancellationToken);
+            return await Task.FromResult(profit);
         }
     }
 }

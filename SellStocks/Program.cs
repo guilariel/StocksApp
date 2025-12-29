@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Npgsql.EntityFrameworkCore.PostgreSQL;
+using PurchaseDll;
 using PurchaseStocks.Application.Handlers;
 using RabbitMQAndGenericRepository.RabbitMq;
 using RabbitMQAndGenericRepository.Repositorio;
@@ -30,6 +31,7 @@ builder.Services.AddMediatR(cfg =>
 builder.Services.AddTransient<DeleteInPossessionHandler>();
 builder.Services.AddScoped<StockRepository>();
 builder.Services.AddScoped<UserRepository>();
+builder.Services.AddScoped<PriceRepository>();
 
 builder.Services.Configure<RabbitMQOptions>(
     builder.Configuration.GetSection("RabbitMQ")
