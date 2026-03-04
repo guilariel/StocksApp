@@ -9,12 +9,12 @@ using System.Threading.Tasks;
 
 namespace PurchaseDll
 {
-    interface IPriceRepository : IRepository<PriceHistoryDb, int>
+    interface IPriceRepository : IRepository<PriceHistoryDb>
     {
         Task<PriceHistoryDb?> GetLatestAsync();
-        Task<PriceHistoryDb?> GetByPriceIdAsync(int id);
+        Task<PriceHistoryDb?> GetByPriceIdAsync(string id);
     }
-    public class PriceRepository : EFRepository<PriceHistoryDb, int>, IPriceRepository
+    public class PriceRepository : EFRepository<PriceHistoryDb>, IPriceRepository
     {
         public PriceRepository(DbContext context) : base(context)
         {
@@ -25,7 +25,7 @@ namespace PurchaseDll
                 .OrderByDescending(e => e.date)
                 .FirstOrDefaultAsync();
         }
-        public async Task<PriceHistoryDb?> GetByPriceIdAsync(int id)
+        public async Task<PriceHistoryDb?> GetByPriceIdAsync(string id)
         {
             return await _entities.FirstOrDefaultAsync(e => e.stock_id == id);
         }

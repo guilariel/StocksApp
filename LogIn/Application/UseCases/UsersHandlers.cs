@@ -3,9 +3,12 @@ using LogIn.Domain.Hashing;
 using LogInDll;
 using LogInLibrary;
 using MediatR;
+using Microsoft.AspNetCore.Identity;
 using RabbitMQAndGenericRepository.RabbitMq;
 using RabbitMQAndGenericRepository.Repositorio.DbEntities;
 using SellStocks.Application.Dtos;
+using System.Security.Claims;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace LogIn.Application.UseCases
 {
@@ -21,88 +24,103 @@ namespace LogIn.Application.UseCases
         {
             var hashedPassword = PasswordHasher.Hasher(request.password);
             UsersDbAddDto userToAdd = new UsersDbAddDto(request.name, 0, hashedPassword);
+            IdentityUser user = new IdentityUser
+            {
+                UserName = request.name,
+                Email = string.Empty,
+                PasswordHash = hashedPassword,
+                SecurityStamp = string.Empty,
+                ConcurrencyStamp = string.Empty,
+                PhoneNumber = string.Empty,
+                TwoFactorEnabled = false,
+                LockoutEnabled = false,
+                AccessFailedCount = 0
 
+            };
+
+            await _rabbitMessageService.SendMessage<IdentityUser>(user, "add");
             await _rabbitMessageService.SendMessage<UsersDbAddDto>(userToAdd, "add");
         }
     }
-    public record UserLogInQuery(string name, string password) : IRequest<string?>;
-
-    public class UserLogInHandler : IRequestHandler<UserLogInQuery, string?>
-    {
-        private readonly UserRepository _userRepository;
-        private readonly JwtService _tokenService;
-
-        public UserLogInHandler(UserRepository userRepository, JwtService tokenService)
-        {
-            _userRepository = userRepository;
-            _tokenService = tokenService;
-        }
-
-        public async Task<string?> Handle(UserLogInQuery request, CancellationToken cancellationToken)
-        {
-            UsersDb? user = await _userRepository.GetOneByNameAsync(request.name);
-            if (user == null)
-                return null;
-
-            bool isValid = PasswordHasher.VerifyPassword(request.password, user.password_hash);
-            if (!isValid)
-                return null;
-
-            var token = _tokenService.GenerateToken(user.name);
-
-            return token;
-        }
-    }
-
-    public record AddFundsQuery(string name, double amount, string currency) : IRequest;
+    public record AddFundsQuery(double amount, string currency) : IRequest;
     public class AddFundsHandler : IRequestHandler<AddFundsQuery>
-    {
+    { 
         private readonly RabbitMessageService _rabbitMessageService;
-        private readonly UserRepository _userRepository;
-        public AddFundsHandler(RabbitMessageService rabbitMessageService, UserRepository userRepository)
-        {
-            _rabbitMessageService = rabbitMessageService;
-            _userRepository = userRepository;
-        }
-        public async Task Handle(AddFundsQuery request, CancellationToken cancellationToken)
-        {
-            UsersDb? userDb = await _userRepository.GetOneByNameAsync(request.name);
-            UserFundsDb usersDbDto = new UserFundsDb
-            {
-                user_id = userDb.id,
-                funds = request.amount,
-                currency = request.currency
-            };
-            await _rabbitMessageService.SendMessage<UserFundsDb>(usersDbDto, "add");
-        }
-    }
-    public record SellFundsQuery(string name, double amount, string currency) : IRequest;
-    public class SellFundsHandler : IRequestHandler<SellFundsQuery>
-    {
-        private readonly RabbitMessageService _rabbitMessageService;
-        private readonly UserRepository _userRepository;
         private readonly UserFundsRepository _userFundsRepository;
-        public SellFundsHandler(RabbitMessageService rabbitMessageService, UserRepository userRepository, UserFundsRepository userFundsRepository)
+        private readonly UserManager<IdentityUser> _userManager;
+        private readonly ICurrentUserService _currentUser;
+        public AddFundsHandler(RabbitMessageService rabbitMessageService,
+            UserManager<IdentityUser> userManager, 
+            UserFundsRepository userFundsRepository,
+            ICurrentUserService currentUser) 
         {
             _rabbitMessageService = rabbitMessageService;
-            _userRepository = userRepository;
             _userFundsRepository = userFundsRepository;
-        }
-        public async Task Handle(SellFundsQuery request, CancellationToken cancellationToken)
+            _userManager = userManager; _currentUser = currentUser;
+        } 
+        public async Task Handle(AddFundsQuery request, CancellationToken cancellationToken) 
+        { 
+            var userId = _currentUser.UserId;
+            if (string.IsNullOrEmpty(userId))
+                throw new UnauthorizedAccessException("UserId not found in token");
+            var userFundsDb = await _userFundsRepository.GetByIdAsync(userId, request.currency);
+            UserFundsDb userFunds = new UserFundsDb 
+            { 
+                user_id = userId,
+                funds = userFundsDb.funds + request.amount,
+                currency = request.currency 
+            }; 
+            await _rabbitMessageService.SendMessage(userFunds, "add"); 
+        } 
+    }
+    public record SellFundsQuery(double amount, string currency) : IRequest;
+    public class SellFundsHandler : IRequestHandler<SellFundsQuery> 
+    { 
+        private readonly RabbitMessageService _rabbitMessageService;
+        private readonly UserFundsRepository _userFundsRepository; 
+        private readonly UserManager<IdentityUser> _userManager;
+        private readonly ICurrentUserService _currentUser; 
+        public SellFundsHandler(
+            RabbitMessageService rabbitMessageService,
+            UserManager<IdentityUser> userManager,
+            UserFundsRepository userFundsRepository,
+            ICurrentUserService currentUser)
         {
-            UsersDb? userDb = await _userRepository.GetOneByNameAsync(request.name);
-            UserFundsDb userFundsDb = await _userFundsRepository.GetByIdAsync(new UserFundsStruct(userDb.id, request.currency));
-            if (userFundsDb.funds < request.amount)
-            {
-                throw new Exception("Insufficient funds");
-            }
-            UserFundsDb usersDbDto = new UserFundsDb
-            {
-                user_id = userDb.id,
-                funds = request.amount,
-                currency = request.currency
-            };
-            await _rabbitMessageService.SendMessage<UserFundsDb>(usersDbDto, "sell");
-        }
+            _rabbitMessageService = rabbitMessageService;
+            _userFundsRepository = userFundsRepository;
+            _userManager = userManager;
+            _currentUser = currentUser;
+        } 
+        public async Task Handle(SellFundsQuery request, CancellationToken cancellationToken)
+        { 
+            var userId = _currentUser.UserId;
+            if (userId == null) 
+               throw new UnauthorizedAccessException(); 
+            UserFundsDb? userFundsDb = await _userFundsRepository.GetByIdAsync(userId, request.currency);
+            if (userFundsDb.funds < request.amount) 
+            throw new Exception("Insufficient funds"); 
+            UserFundsDb usersDbDto = new UserFundsDb 
+            { 
+                user_id = userId, 
+                funds = userFundsDb.funds - request.amount,
+                currency = request.currency 
+            }; 
+            await _rabbitMessageService.SendMessage<UserFundsDb>(usersDbDto, "sell"); 
+        } 
     }
 }
+public interface ICurrentUserService 
+{ 
+    string? UserId { get; } 
+    string? UserName { get; }
+}
+public class CurrentUserService : ICurrentUserService 
+{ 
+    private readonly IHttpContextAccessor _httpContextAccessor; 
+    public CurrentUserService(IHttpContextAccessor httpContextAccessor) 
+    { 
+        _httpContextAccessor = httpContextAccessor;
+    } 
+    public string? UserId => _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+    public string? UserName => _httpContextAccessor.HttpContext?.User?.Identity?.Name; 
+} 

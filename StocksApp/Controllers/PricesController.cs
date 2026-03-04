@@ -20,7 +20,7 @@ namespace PurchaseStocks.Controllers
              Ok(await _mediator.Send(new GetAllPricesQuery()));
         
         [HttpGet("{id}")]
-        public async Task<ActionResult<PriceDbDto>> GetOne(int id) =>
+        public async Task<ActionResult<PriceDbDto>> GetOne(string id) =>
              Ok(await _mediator.Send(new GetOnePriceQuery(id)));
     }
 }

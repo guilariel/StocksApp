@@ -16,17 +16,6 @@ namespace PurchaseStocks.Controllers
             _mediator = mediator;
         }
 
-        [HttpPost("login")]
-        public async Task<IActionResult> UserLogIn([FromBody] LoginRequest request)
-        {
-            var token = await _mediator.Send(new UserLogInQuery(request.Name, request.Password));
-
-            if (token == null)
-                return Unauthorized("Nombre o contraseña incorrectos");
-
-            return Ok(new { token });
-        }//como arrancar una api de .net por powershell
-
         [HttpPost("add")]
         public async Task<IActionResult> AddUser([FromBody] AddUserRequest request)
         {
@@ -35,22 +24,17 @@ namespace PurchaseStocks.Controllers
         }
 
         [Authorize]
-        [HttpGet("profile")]
-        public IActionResult GetUserProfile()
+        [HttpPost("AddFunds/{amount}/{currency}")]
+        public async Task<IActionResult> AddFunds(double amount, string currency)
         {
-            var userName = User.Identity?.Name ?? "Usuario";
-            return Ok(new { message = $"Hola {userName}, estás autenticado ✅" });
-        }
-        [HttpPost("AddFunds/{name}/{amount}/{currency}")]
-        public async Task<IActionResult> AddFunds(string name, double amount, string currency)
-        {
-            await _mediator.Send(new AddFundsQuery(name, amount, currency));
+            await _mediator.Send(new AddFundsQuery(amount, currency));
             return Ok("Fondos agregados correctamente");
         }
-        [HttpDelete("SellFunds/{name}/{amount}/{currency}")]
-        public async Task<IActionResult> SellFunds(string name, double amount, string currency)
+        [Authorize]
+        [HttpDelete("SellFunds/{amount}/{currency}")]
+        public async Task<IActionResult> SellFunds(double amount, string currency)
         {
-            await _mediator.Send(new SellFundsQuery(name, amount, currency));
+            await _mediator.Send(new SellFundsQuery(amount, currency));
             return Ok("Fondos agregados correctamente");
         }
     }

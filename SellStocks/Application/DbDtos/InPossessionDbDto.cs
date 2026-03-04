@@ -6,8 +6,8 @@ namespace SellStocks.Application.Dtos
 {
     public class InPossessionDbDto
     {
-        public int owner_id { get; set; }
-        public int stock_id { get; set; }
-        public int amount { get; set; }
+        public string owner_id { get; set; }
+        public string stock_id { get; set; }
+        public double amount { get; set; }
     }
 }

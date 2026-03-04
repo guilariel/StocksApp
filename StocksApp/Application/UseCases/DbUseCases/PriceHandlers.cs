@@ -26,7 +26,7 @@ namespace StocksApp.Application.UseCases.DbUseCases
             return result;
         }
     }
-    public record GetOnePriceQuery(int id) : IRequest<PriceDbDto>;
+    public record GetOnePriceQuery(string id) : IRequest<PriceDbDto>;
 
     public class GetOnePriceHandler : IRequestHandler<GetOnePriceQuery, PriceDbDto>
     {

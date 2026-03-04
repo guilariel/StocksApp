@@ -6,7 +6,7 @@ namespace StocksApp.Application.Dtos.DbDtos
     {
         public UsersDbDto Owner { get; set; }
         public StockDbDto Stock { get; set; }
-        public int amount { get; set; }
+        public double amount { get; set; }
         public InPossessionDbDto(UsersDbDto usersDbDto, StockDbDto stockDbDto, int amount) 
         {
             Owner = usersDbDto;

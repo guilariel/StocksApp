@@ -1,3 +1,5 @@
+using ActualizeDataBaseWithRabbitMQ.Infrastructure;
+using ActualizeDataBaseWithRabbitMQ.Repositories;
 using Hangfire;
 using Hangfire.PostgreSql;
 using Microsoft.AspNetCore.Cors;
@@ -7,8 +9,6 @@ using Microsoft.Extensions.Options;
 using RabbitMQAndGenericRepository.RabbitMq;
 using RabbitMQAndGenericRepository.Repositorio;
 using StocksApp.Application.UseCases.DbUseCases;
-using StocksApp.Application.UseCases.RepositoryUseCases;
-using StocksApp.Domain.Repositorys;
 using StocksApp.Infrastructure.ExternalServices;
 using StocksApp.Infrastructure.Utilities;
 using StocksDll; // Asegúrate de incluir este espacio de nombres
@@ -34,26 +34,13 @@ builder.Services.Configure<ConnectionStringsOptions>(
 
 var connectionString = builder.Configuration.GetConnectionString("DataBase");
 
-builder.Services.AddDbContext<DbContext, GenericDbContext>(options =>
+builder.Services.AddDbContext<StocksAppDbContext>(options =>
     options.UseNpgsql(connectionString)
 );
 // Add services to the container.
 builder.Services.AddHangfire(config =>
     config.UsePostgreSqlStorage(connectionString));
 builder.Services.AddHangfireServer();
-
-// Registrar el connectionString como singleton si lo necesitas en otros lugares
-//builder.Services.AddSingleton<string>(connectionString);
-builder.Services.AddSingleton<ICompanyRepository, CompanyRepository>();
-
-builder.Services.AddTransient<AddCompanyHandler>();
-builder.Services.AddTransient<DeleteCompanyHandler>();
-builder.Services.AddTransient<GetAllCompaniesHandler>();
-builder.Services.AddTransient<GetCompanyBySymbolHandler>();
-builder.Services.AddTransient<GetQuoteBySymbolHandler>();
-builder.Services.AddTransient<GetPriceHandler>();
-builder.Services.AddTransient<UpdateCompanys>();
-builder.Services.AddTransient<ChangeCurrencyHandler>();
 
 builder.Services.Configure<RabbitMQOptions>(
     builder.Configuration.GetSection("RabbitMQ"));
@@ -129,9 +116,6 @@ app.UseHangfireDashboard();
 
 // Aplicar la política de CORS
 app.UseCors();
-
-// Job recurrente cada 5 minutos
-RecurringJob.AddOrUpdate("UpdateStocks", (UpdateCompanys update) => update.UpdateAsync(), "*/5 * * * *");
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

@@ -15,7 +15,7 @@ namespace PurchaseStocks.Controllers
         }
    
         [HttpPost("{owner_name}/{stock_name}/{amount}")]
-        public async Task<ActionResult> Add(string owner_name, string stock_name, int amount)
+        public async Task<ActionResult> Add(string owner_name, string stock_name, double amount)
         {
             await _mediator.Send(new AddPossessionCommand(owner_name,stock_name,amount));
             return Ok();

@@ -10,7 +10,7 @@ using PurchaseStocks.Application.Dtos;
 
 namespace PurchaseStocks.Application.Handlers
 {
-    public record DeleteInPossessionCommand(string owner_name, string stock_name, int amount) : IRequest;
+    public record DeleteInPossessionCommand(string owner_name, string stock_name, double amount) : IRequest;
     public class DeleteInPossessionHandler : IRequestHandler<DeleteInPossessionCommand>
     {
         private readonly UserRepository _userRepository;

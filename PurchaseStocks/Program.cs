@@ -5,6 +5,7 @@ using PurchaseStocks.Application.Handlers;
 using PurchaseDll;
 using RabbitMQAndGenericRepository.RabbitMq;
 using RabbitMQAndGenericRepository.Repositorio;
+using ActualizeDataBaseWithRabbitMQ.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 //setx ConnectionString_SellStocksDb "Host=localhost;Port=5432;Database=SellStocksDataBase;Username=postgres;Password=2325"
@@ -15,9 +16,9 @@ if (string.IsNullOrEmpty(connectionString))
     throw new InvalidOperationException("No se encontró ninguna cadena de conexión configurada.");
 }
 
-builder.Services.AddDbContext<DbContext, GenericDbContext>(options =>
-    options.UseNpgsql(connectionString)
-);
+//builder.Services.AddDbContext<PurchaseStocksDbContext>(options =>
+//    options.UseNpgsql(connectionString)
+//);
 //  UseSqlServer, UseSqlite, etc., según tu base de datos
 
 //  Registramos MediatR

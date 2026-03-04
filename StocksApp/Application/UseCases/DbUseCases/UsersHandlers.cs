@@ -78,11 +78,11 @@ namespace StocksApp.Application.UseCases.DbUseCases
 
     public class GetYearlyProffitHandler : IRequestHandler<GetYearlyProffitQuery, double>
     {
-        private readonly GenericDbContext _genericDbContext;
+        private readonly DbContext _dbContext;
         private readonly UserRepository _userRepository;
-        public GetYearlyProffitHandler(GenericDbContext genericDbContext, UserRepository userRepository)
+        public GetYearlyProffitHandler(DbContext genericDbContext, UserRepository userRepository)
         {
-            _genericDbContext = genericDbContext;
+            _dbContext = genericDbContext;
             _userRepository = userRepository;
         }
         public async Task<double> Handle(GetYearlyProffitQuery request, CancellationToken cancellationToken)
@@ -90,7 +90,7 @@ namespace StocksApp.Application.UseCases.DbUseCases
             UsersDb usersDb = await _userRepository.GetOneByNameAsync(request.user);
             var userIdParam = new NpgsqlParameter("owner_id", usersDb.id);
             var currencyParam = new NpgsqlParameter("currency", request.currency);
-            var profit = await _genericDbContext.Database
+            var profit = await _dbContext.Database
              .SqlQueryRaw<int>(
         "select get_yearly_profit(@owner_id, @currency) as \"Value\"",
         userIdParam,
@@ -104,11 +104,11 @@ namespace StocksApp.Application.UseCases.DbUseCases
     public record GetMonthlyProffitQuery(string user, string currency) : IRequest<double>;
     public class GetMonthlyProffitHandler : IRequestHandler<GetMonthlyProffitQuery, double>
     {
-        private readonly GenericDbContext _genericDbContext;
+        private readonly DbContext _dbContext;
         private readonly UserRepository _userRepository;
-        public GetMonthlyProffitHandler(GenericDbContext genericDbContext, UserRepository userRepository)
+        public GetMonthlyProffitHandler(DbContext genericDbContext, UserRepository userRepository)
         {
-            _genericDbContext = genericDbContext;
+            _dbContext = genericDbContext;
             _userRepository = userRepository;
         }
         public async Task<double> Handle(GetMonthlyProffitQuery request, CancellationToken cancellationToken)
@@ -116,7 +116,7 @@ namespace StocksApp.Application.UseCases.DbUseCases
             UsersDb usersDb = await _userRepository.GetOneByNameAsync(request.user);
             var userIdParam = new NpgsqlParameter("owner_id", usersDb.id);
             var currencyParam = new NpgsqlParameter("currency", request.currency);
-            var profit = await _genericDbContext.Database
+            var profit = await _dbContext.Database
              .SqlQueryRaw<int>(
         "select get_monthly_profit(@owner_id, @currency) as \"Value\"",
         userIdParam,

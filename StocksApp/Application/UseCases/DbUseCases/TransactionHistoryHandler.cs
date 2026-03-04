@@ -3,6 +3,7 @@ using StocksApp.Infrastructure.ExternalServices;
 using RabbitMQAndGenericRepository.Repositorio.DbEntities;
 using StocksDll;
 using StocksApp.Application.Dtos.DbDtos;
+using ActualizeDataBaseWithRabbitMQ.Repositories;
 
 namespace StocksApp.Application.UseCases.DbUseCases
 {

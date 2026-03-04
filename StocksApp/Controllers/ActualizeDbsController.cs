@@ -3,8 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using RabbitMQAndGenericRepository.RabbitMq;
 using StocksApp.Application.Dtos.RepositoryDtos;
 using StocksApp.Application.UseCases.DbUseCases;
-using StocksApp.Application.UseCases.RepositoryUseCases;
-using StocksApp.Domain.Entities.RepositoryEntites;
+
 
 namespace StocksApp.Controllers
 {

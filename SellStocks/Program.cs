@@ -1,3 +1,4 @@
+using ActualizeDataBaseWithRabbitMQ.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -20,9 +21,9 @@ if (string.IsNullOrEmpty(connectionString))
 }
 
 
-builder.Services.AddDbContext<DbContext, GenericDbContext>(options =>
-    options.UseNpgsql(connectionString)
-);
+//builder.Services.AddDbContext<SellStocksDbContext>(options =>
+//    options.UseNpgsql(connectionString)
+//);
 
 builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(Program).Assembly)

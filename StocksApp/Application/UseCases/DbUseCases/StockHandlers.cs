@@ -35,7 +35,7 @@ namespace StocksApp.Application.UseCases.DbUseCases
     }
 
     // --- GET ONE ---
-    public record GetStockByIdQuery(int Id) : IRequest<StockDbDto>;
+    public record GetStockByIdQuery(string Id) : IRequest<StockDbDto>;
 
     public class GetStockByIdHandler : IRequestHandler<GetStockByIdQuery, StockDbDto>
     {

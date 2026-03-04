@@ -15,7 +15,7 @@ namespace SellStocks.Controllers
         }
 
         [HttpDelete("{user}/{stock}/{amount}")]
-        public async Task<ActionResult> Delete(string user, string stock, int amount)
+        public async Task<ActionResult> Delete(string user, string stock, double amount)
         {
             await _mediator.Send(new DeleteInPossessionCommand(user, stock, amount));
             return NoContent();

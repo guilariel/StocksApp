@@ -18,7 +18,7 @@ namespace PurchaseStocks.Controllers
         public async Task<ActionResult<List<StockDbDto>>> Get() =>
             Ok(await _mediator.Send(new GetAllStocksQuery()));
         [HttpGet("id/{id}")]
-        public async Task<ActionResult<StockDbDto>> GetOne(int id) =>
+        public async Task<ActionResult<StockDbDto>> GetOne(string id) =>
             Ok(await _mediator.Send(new GetStockByIdQuery(id)));
         [HttpGet("name/{name}")]
         public async Task<ActionResult<StockDbDto>> GetOneByName(string name) =>

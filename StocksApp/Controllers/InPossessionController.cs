@@ -18,7 +18,7 @@ namespace PurchaseStocks.Controllers
         public async Task<ActionResult<List<InPossessionDbDto>>> Get() =>
             Ok(await _mediator.Send(new GetAllInPossessionsQuery()));
         [HttpGet("{id}/{user}")]
-        public async Task<ActionResult<InPossessionDbDto>> GetOne(int id, int user) =>
+        public async Task<ActionResult<InPossessionDbDto>> GetOne(string id, int user) =>
             Ok(await _mediator.Send(new GetInPossessionQuery(id,user)));
 
         [HttpGet("ownerName/{ownerName}")]

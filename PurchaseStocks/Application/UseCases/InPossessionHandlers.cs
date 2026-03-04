@@ -7,7 +7,7 @@ using SellStocks.Application.Dtos;
 
 namespace PurchaseStocks.Application.Handlers
 {
-    public record AddPossessionCommand(string owner_name, string stock_name, int amount) : IRequest;
+    public record AddPossessionCommand(string owner_name, string stock_name, double amount) : IRequest;
     public class AddPossessionHandler : IRequestHandler<AddPossessionCommand>
     {
         private readonly UserRepository _userRepository;

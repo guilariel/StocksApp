@@ -39,7 +39,7 @@ namespace StocksApp.Application.UseCases.DbUseCases
     }
 
     // --- GET ONE ---
-    public record GetInPossessionQuery(int OwnerId, int SymbolId) : IRequest<InPossessionDbDto?>;
+    public record GetInPossessionQuery(string OwnerId, string SymbolId) : IRequest<InPossessionDbDto?>;
 
     public class GetInPossessionHandler : IRequestHandler<GetInPossessionQuery, InPossessionDbDto?>
     {
